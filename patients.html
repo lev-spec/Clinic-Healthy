@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinic Healthy | Patients</title>
+    <link rel="stylesheet" href="dashboard.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+</head>
+<body>
+<header>
+<div class="left_main_container">
+    <div class="top_left_container">
+        <img class="clinic_logo" id="clinic-logo" src="./../IMGS/clinic-logo.png" alt="საავადმყოფოს ლოგო">
+    </div>
+
+<nav class="bottom_left_container">
+    <ul>
+        <li class="menu-item">
+            <a href="dashboard.html">🏠 მთავარი</a>
+        </li>
+
+        <li class="menu-item">
+            <a href="patients.html">👤 პაციენტების სია</a>
+        </li>
+        <li class="menu-item">
+            <a href="calendar.html">📅 კალენდარი</a>
+        </li>        
+        <li class="menu-item">
+            <a href="doctros.html">🩺 ექიმები</a>
+        </li> 
+  
+        <li class="menu-item">
+            <a href="reports.html">📊 რეპორტები</a>
+        </li>  
+        <li class="menu-item">
+            <a href="settings.html">⚙️ პარამეტრები</a>
+        </li>
+        <li class="menu-item">
+            <a href="exit.html">🚪 გამოსვლა</a>
+        </li>
+
+    </ul>
+</nav>
+</div>
+</header>
+
+
+<div class="main_content">
+    <div class="patients-header">
+        <h2>Patients List</h2>
+        <div class="actions">
+            <input type="text" id="search-patient" placeholder="Search by Name or ID..." class="search-input">
+            <button id="add-patient-btn" class="btn-primary">+ Add New Patient</button>
+        </div>
+    </div>
+    
+    <div id="patients-list-container" class="patients-grid">
+        <!-- Patients will be loaded here dynamically -->
+        <div class="loading-state">Loading patients...</div>
+    </div>
+</div>
+
+<!-- Add Patient Modal -->
+<div id="patient-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal">&times;</span>
+        <h2>Add New Patient</h2>
+        <form id="patient-form">
+            
+            <!-- Section 1: Personal Identification -->
+            <fieldset>
+                <legend>1. Personal Identification (Mandatory)</legend>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="firstName">First Name *</label>
+                        <input type="text" id="firstName" name="firstName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="lastName">Last Name *</label>
+                        <input type="text" id="lastName" name="lastName" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="personalId">Personal ID (11 Digits) *</label>
+                        <input type="text" id="personalId" name="personalId" pattern="\d{11}" title="Must be exactly 11 digits" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="dob">Date of Birth *</label>
+                        <input type="date" id="dob" name="dob" required>
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="gender">Gender *</label>
+                        <select id="gender" name="gender" required>
+                            <option value="">Select...</option>
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="citizenship">Citizenship *</label>
+                        <select id="citizenship" name="citizenship" required>
+                            <option value="Georgia">Georgia</option>
+                            <option value="Foreign">Foreign Country</option>
+                        </select>
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Section 2: Contact Information -->
+            <fieldset>
+                <legend>2. Contact Information</legend>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="phone">Phone Number (Mobile) *</label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email (Optional)</label>
+                        <input type="email" id="email" name="email">
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label for="addressActual">Actual Address *</label>
+                    <input type="text" id="addressActual" name="addressActual" required placeholder="City, Street, Apt">
+                </div>
+                <div class="form-group full-width">
+                    <label for="addressLegal">Legal Address *</label>
+                    <input type="text" id="addressLegal" name="addressLegal" required placeholder="Same as actual if applicable">
+                </div>
+            </fieldset>
+
+            <!-- Section 3: Medical & Administrative -->
+            <fieldset>
+                <legend>3. Medical & Administrative</legend>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="bloodGroup">Blood Group & Rhesus</label>
+                        <select id="bloodGroup" name="bloodGroup">
+                            <option value="">Unknown</option>
+                            <option value="A+">A+</option>
+                            <option value="A-">A-</option>
+                            <option value="B+">B+</option>
+                            <option value="B-">B-</option>
+                            <option value="AB+">AB+</option>
+                            <option value="AB-">AB-</option>
+                            <option value="O+">O+</option>
+                            <option value="O-">O-</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="status">Patient Status *</label>
+                        <select id="status" name="status" required>
+                            <option value="Active">Active</option>
+                            <option value="Inactive">Inactive</option>
+                            <option value="Deceased">Deceased</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group full-width">
+                    <label for="allergies" style="color: red; font-weight: bold;">Allergies (Critical) *</label>
+                    <textarea id="allergies" name="allergies" rows="2" placeholder="List any known allergies..." style="border-color: red;"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="familyDoctor">Family Doctor</label>
+                        <input type="text" id="familyDoctor" name="familyDoctor">
+                    </div>
+                    <div class="form-group">
+                        <label for="diagnosis">Primary Diagnosis / Problem</label>
+                        <input type="text" id="diagnosis" name="diagnosis" placeholder="Reason for visit">
+                    </div>
+                </div>
+            </fieldset>
+
+            <!-- Section 4: Insurance Module -->
+            <fieldset>
+                <legend>4. Insurance Module</legend>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="insuranceCompany">Insurance Company</label>
+                        <input type="text" id="insuranceCompany" name="insuranceCompany">
+                    </div>
+                    <div class="form-group">
+                        <label for="policyNumber">Policy Number</label>
+                        <input type="text" id="policyNumber" name="policyNumber">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="insuranceType">Insurance Type</label>
+                    <select id="insuranceType" name="insuranceType">
+                        <option value="">None</option>
+                        <option value="Corporate">Corporate</option>
+                        <option value="Individual">Individual</option>
+                        <option value="Universal">Universal Healthcare</option>
+                    </select>
+                </div>
+            </fieldset>
+
+            <!-- Consent -->
+            <div class="form-group consent-group">
+                <input type="checkbox" id="consent" name="consent" required>
+                <label for="consent">I consent to the processing of my personal data in accordance with the legislation.</label>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="submit-btn">Save Patient</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- View Patient Modal -->
+<div id="view-patient-modal" class="modal">
+    <div class="modal-content">
+        <span class="close-view-modal" style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
+        <h2>Patient Details</h2>
+        <div id="view-patient-details" class="patient-details-view">
+            <!-- Details will be injected here -->
+        </div>
+    </div>
+</div>
+
+<script src="dashboard.js"></script>
+<script src="patients.js"></script>
+
+</body>
+</html>
