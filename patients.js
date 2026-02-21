@@ -11,8 +11,26 @@ document.addEventListener("DOMContentLoaded", function () {
     const closeViewModalBtn = document.querySelector(".close-view-modal");
     const viewDetailsContainer = document.getElementById("view-patient-details");
 
+    // History Modal Elements
+    const historyModal = document.getElementById("history-modal");
+    const closeHistoryModalBtn = document.querySelector(".close-history-modal");
+    const historyTableBody = document.getElementById("history-table-body");
+    const printHistoryBtn = document.getElementById("print-history-btn");
+    const addHistoryServiceBtn = document.getElementById("add-history-service-btn");
+    const historyPatientInfo = document.getElementById("history-patient-info");
+
+    // Add Service to Patient Modal Elements
+    const addServiceModal = document.getElementById("add-service-to-patient-modal");
+    const closeAddServiceModalBtn = document.querySelector(".close-add-service-modal");
+    const addServiceForm = document.getElementById("add-service-form");
+    const selectService = document.getElementById("select-service");
+    const serviceDateInput = document.getElementById("service-date");
+    const historyPatientIdInput = document.getElementById("history-patient-id");
+
     const patientForm = document.getElementById("patient-form");
     const searchInput = document.getElementById("search-patient");
+
+    let currentHistoryPatient = null;
 
     // Seed Data if empty
     seedPatients();
@@ -34,6 +52,11 @@ document.addEventListener("DOMContentLoaded", function () {
     // --- Add Patient Logic ---
     if (addPatientBtn) {
         addPatientBtn.addEventListener("click", () => {
+            document.querySelector("#patient-modal h2").textContent = "ახალი პაციენტის დამატება";
+            document.querySelector("#patient-form .submit-btn").textContent = "შენახვა";
+            if(document.getElementById("edit-mode-id")) document.getElementById("edit-mode-id").value = "";
+            patientForm.reset();
+
             addModal.style.display = "block";
             document.body.style.overflow = "hidden";
         });
@@ -54,7 +77,41 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    // Close on outside click (both modals)
+    // --- History Modal Logic ---
+    if (closeHistoryModalBtn) {
+        closeHistoryModalBtn.addEventListener("click", () => {
+            historyModal.style.display = "none";
+            document.body.style.overflow = "auto";
+        });
+    }
+
+    if (addHistoryServiceBtn) {
+        addHistoryServiceBtn.addEventListener("click", () => {
+            openAddServiceModal();
+        });
+    }
+
+    if (printHistoryBtn) {
+        printHistoryBtn.addEventListener("click", () => {
+            printPatientHistory();
+        });
+    }
+
+    // --- Add Service Modal Logic ---
+    if (closeAddServiceModalBtn) {
+        closeAddServiceModalBtn.addEventListener("click", () => {
+            addServiceModal.style.display = "none";
+        });
+    }
+
+    if (addServiceForm) {
+        addServiceForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            addServiceToPatient();
+        });
+    }
+
+    // Close on outside click (all modals)
     window.addEventListener("click", (e) => {
         if (e.target === addModal) {
             addModal.style.display = "none";
@@ -64,19 +121,28 @@ document.addEventListener("DOMContentLoaded", function () {
             viewModal.style.display = "none";
             document.body.style.overflow = "auto";
         }
+        if (e.target === historyModal) {
+            historyModal.style.display = "none";
+            document.body.style.overflow = "auto";
+        }
+        if (e.target === addServiceModal) {
+            addServiceModal.style.display = "none";
+        }
     });
 
-    // Handle Form Submission
+    // Handle Form Submission (Patient)
     if (patientForm) {
         patientForm.addEventListener("submit", function (e) {
             e.preventDefault();
 
             const consent = document.getElementById("consent").checked;
             if (!consent) {
-                alert("Please sign the consent form to proceed.");
+                alert("გთხოვთ, მოაწეროთ ხელი თანხმობის ფორმას გასაგრძელებლად.");
                 return;
             }
 
+            const editId = document.getElementById("edit-mode-id") ? document.getElementById("edit-mode-id").value : "";
+            
             const newPatient = {
                 firstName: document.getElementById("firstName").value,
                 lastName: document.getElementById("lastName").value,
@@ -96,29 +162,49 @@ document.addEventListener("DOMContentLoaded", function () {
                 insuranceCompany: document.getElementById("insuranceCompany").value,
                 policyNumber: document.getElementById("policyNumber").value,
                 insuranceType: document.getElementById("insuranceType").value,
-                createdAt: new Date().toISOString()
+                createdAt: editId ? undefined : new Date().toISOString(),
+                history: [] // Init history
             };
 
             if (!/^\d{11}$/.test(newPatient.personalId)) {
-                alert("Personal ID must be exactly 11 digits.");
+                alert("პირადი ნომერი უნდა შედგებოდეს ზუსტად 11 ციფრისგან.");
                 return;
             }
 
             let patients = JSON.parse(localStorage.getItem("patients")) || [];
-            if (patients.some(p => p.personalId === newPatient.personalId)) {
-                alert("A patient with this Personal ID already exists.");
-                return;
-            }
+            
+            if (editId) {
+                // Check if NEW ID already exists (and it's not the same patient)
+                if (editId !== newPatient.personalId && patients.some(p => p.personalId === newPatient.personalId)) {
+                    alert("პაციენტი ამ პირადი ნომრით უკვე არსებობს.");
+                    return;
+                }
 
-            patients.push(newPatient);
-            localStorage.setItem("patients", JSON.stringify(patients));
+                // Update existing
+                const index = patients.findIndex(p => p.personalId === editId);
+                if (index !== -1) {
+                    newPatient.createdAt = patients[index].createdAt; // Preserve created date
+                    newPatient.history = patients[index].history || []; // Preserve history
+                    patients[index] = newPatient;
+                    localStorage.setItem("patients", JSON.stringify(patients));
+                    alert("პაციენტის მონაცემები განახლდა!");
+                }
+            } else {
+                // Add new
+                if (patients.some(p => p.personalId === newPatient.personalId)) {
+                    alert("პაციენტი ამ პირადი ნომრით უკვე არსებობს.");
+                    return;
+                }
+                patients.push(newPatient);
+                localStorage.setItem("patients", JSON.stringify(patients));
+                alert("პაციენტი წარმატებით დაემატა!");
+            }
 
             patientForm.reset();
             addModal.style.display = "none";
             document.body.style.overflow = "auto";
 
             renderPatients();
-            alert("Patient added successfully!");
         });
     }
 
@@ -129,12 +215,23 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
+    // Expose deletePatient to global scope or handle via event delegation
+    window.deletePatient = function(personalId) {
+        if (confirm("დარწმუნებული ხართ, რომ გსურთ ამ პაციენტის წაშლა?")) {
+            let patients = JSON.parse(localStorage.getItem("patients")) || [];
+            patients = patients.filter(p => p.personalId !== personalId);
+            localStorage.setItem("patients", JSON.stringify(patients));
+            renderPatients(searchInput ? searchInput.value : "");
+            // alert("პაციენტი წარმატებით წაიშალა.");
+        }
+    }
+
     function renderPatients(searchTerm = "") {
         const patients = JSON.parse(localStorage.getItem("patients")) || [];
         patientsListContainer.innerHTML = "";
 
         if (patients.length === 0) {
-            patientsListContainer.innerHTML = '<div class="no-data">No patients found. Click "Add Patient" to create one.</div>';
+            patientsListContainer.innerHTML = '<div class="no-data">პაციენტები არ მოიძებნა. დააჭირეთ "პაციენტის დამატებას".</div>';
             return;
         }
 
@@ -145,7 +242,7 @@ document.addEventListener("DOMContentLoaded", function () {
         );
 
         if (filtered.length === 0) {
-            patientsListContainer.innerHTML = '<div class="no-data">No matching patients found.</div>';
+            patientsListContainer.innerHTML = '<div class="no-data">შესაბამისი პაციენტები არ მოიძებნა.</div>';
             return;
         }
 
@@ -167,20 +264,63 @@ document.addEventListener("DOMContentLoaded", function () {
                     <div class="patient-status" style="background-color: ${statusColor}">${p.status}</div>
                 </div>
                 <div class="patient-body">
-                    <p><strong>Problem:</strong> ${p.diagnosis || "N/A"}</p>
-                    <p><strong>Phone:</strong> ${p.phone || "N/A"}</p>
+                    <p><strong>პრობლემა:</strong> ${p.diagnosis || "N/A"}</p>
+                    <p><strong>ტელეფონი:</strong> ${p.phone || "N/A"}</p>
                 </div>
-                <div class="patient-footer">
-                    <button class="view-btn">View Details</button>
+                <div class="patient-footer" style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button class="view-btn" style="flex: 1; margin: 0;">დეტალები</button>
+                    <button class="history-btn" style="flex: 1; background-color: #607d8b; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">ისტორია</button>
+                    <button class="edit-btn" style="flex: 1; background-color: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">რედაქტირება</button>
+                    <button class="delete-btn" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">წაშლა</button>
                 </div>
             `;
             
-            // Attach Event Listener
+            // Attach Event Listeners
             const viewBtn = card.querySelector(".view-btn");
             viewBtn.addEventListener("click", () => openViewModal(p));
 
+            const historyBtn = card.querySelector(".history-btn");
+            historyBtn.addEventListener("click", () => openHistoryModal(p));
+
+            const editBtn = card.querySelector(".edit-btn");
+            editBtn.addEventListener("click", () => openEditModal(p));
+
+            const deleteBtn = card.querySelector(".delete-btn");
+            deleteBtn.addEventListener("click", () => window.deletePatient(p.personalId));
+
             patientsListContainer.appendChild(card);
         });
+    }
+
+    function openEditModal(patient) {
+        document.querySelector("#patient-modal h2").textContent = "პაციენტის რედაქტირება";
+        document.querySelector("#patient-form .submit-btn").textContent = "განახლება";
+        document.getElementById("edit-mode-id").value = patient.personalId;
+
+        // Populate fields
+        document.getElementById("firstName").value = patient.firstName;
+        document.getElementById("lastName").value = patient.lastName;
+        document.getElementById("personalId").value = patient.personalId;
+        document.getElementById("dob").value = patient.dob;
+        document.getElementById("gender").value = patient.gender;
+        document.getElementById("citizenship").value = patient.citizenship;
+        document.getElementById("phone").value = patient.phone;
+        document.getElementById("addressActual").value = patient.addressActual;
+        document.getElementById("addressLegal").value = patient.addressLegal;
+        document.getElementById("email").value = patient.email || "";
+        document.getElementById("bloodGroup").value = patient.bloodGroup || "";
+        document.getElementById("allergies").value = patient.allergies || "";
+        document.getElementById("status").value = patient.status;
+        document.getElementById("familyDoctor").value = patient.familyDoctor || "";
+        document.getElementById("diagnosis").value = patient.diagnosis || "";
+        document.getElementById("insuranceCompany").value = patient.insuranceCompany || "";
+        document.getElementById("policyNumber").value = patient.policyNumber || "";
+        document.getElementById("insuranceType").value = patient.insuranceType || "";
+        
+        document.getElementById("consent").checked = true;
+
+        addModal.style.display = "block";
+        document.body.style.overflow = "hidden";
     }
 
     function openViewModal(patient) {
@@ -188,33 +328,33 @@ document.addEventListener("DOMContentLoaded", function () {
 
         viewDetailsContainer.innerHTML = `
             <div class="detail-group">
-                <h3>Personal Information</h3>
-                <p><strong>Name:</strong> ${patient.firstName} ${patient.lastName}</p>
-                <p><strong>ID:</strong> ${patient.personalId}</p>
-                <p><strong>DOB:</strong> ${patient.dob}</p>
-                <p><strong>Gender:</strong> ${patient.gender}</p>
-                <p><strong>Citizenship:</strong> ${patient.citizenship}</p>
+                <h3>პირადი ინფორმაცია</h3>
+                <p><strong>სახელი გვარი:</strong> ${patient.firstName} ${patient.lastName}</p>
+                <p><strong>პირადი ნომერი:</strong> ${patient.personalId}</p>
+                <p><strong>დაბადების თარიღი:</strong> ${patient.dob}</p>
+                <p><strong>სქესი:</strong> ${patient.gender}</p>
+                <p><strong>მოქალაქეობა:</strong> ${patient.citizenship}</p>
             </div>
             <div class="detail-group">
-                <h3>Contact</h3>
-                <p><strong>Phone:</strong> ${patient.phone}</p>
-                <p><strong>Email:</strong> ${patient.email || "N/A"}</p>
-                <p><strong>Address (Actual):</strong> ${patient.addressActual}</p>
-                <p><strong>Address (Legal):</strong> ${patient.addressLegal}</p>
+                <h3>კონტაქტი</h3>
+                <p><strong>ტელეფონი:</strong> ${patient.phone}</p>
+                <p><strong>ელ-ფოსტა:</strong> ${patient.email || "N/A"}</p>
+                <p><strong>მისამართი (ფაქტიური):</strong> ${patient.addressActual}</p>
+                <p><strong>მისამართი (იურიდიული):</strong> ${patient.addressLegal}</p>
             </div>
             <div class="detail-group">
-                <h3>Medical</h3>
-                <p><strong>Blood Group:</strong> ${patient.bloodGroup || "Unknown"}</p>
-                <p><strong>Allergies:</strong> ${patient.allergies || "None"}</p>
-                <p><strong>Status:</strong> ${patient.status}</p>
-                <p><strong>Diagnosis:</strong> ${patient.diagnosis || "N/A"}</p>
-                <p><strong>Family Doctor:</strong> ${patient.familyDoctor || "N/A"}</p>
+                <h3>სამედიცინო</h3>
+                <p><strong>სისხლის ჯგუფი:</strong> ${patient.bloodGroup || "უცნობი"}</p>
+                <p><strong>ალერგიები:</strong> ${patient.allergies || "არა"}</p>
+                <p><strong>სტატუსი:</strong> ${patient.status}</p>
+                <p><strong>დიაგნოზი:</strong> ${patient.diagnosis || "N/A"}</p>
+                <p><strong>ოჯახის ექიმი:</strong> ${patient.familyDoctor || "N/A"}</p>
             </div>
             <div class="detail-group">
-                <h3>Insurance</h3>
-                <p><strong>Company:</strong> ${patient.insuranceCompany || "N/A"}</p>
-                <p><strong>Policy #:</strong> ${patient.policyNumber || "N/A"}</p>
-                <p><strong>Type:</strong> ${patient.insuranceType || "None"}</p>
+                <h3>დაზღვევა</h3>
+                <p><strong>კომპანია:</strong> ${patient.insuranceCompany || "N/A"}</p>
+                <p><strong>პოლისის #:</strong> ${patient.policyNumber || "N/A"}</p>
+                <p><strong>ტიპი:</strong> ${patient.insuranceType || "არა"}</p>
             </div>
         `;
         
@@ -222,26 +362,173 @@ document.addEventListener("DOMContentLoaded", function () {
         document.body.style.overflow = "hidden";
     }
 
+    // --- History Functions ---
+    function openHistoryModal(patient) {
+        currentHistoryPatient = patient;
+        historyPatientInfo.innerHTML = `
+            <div>${patient.firstName} ${patient.lastName} (ID: ${patient.personalId})</div>
+            <div>დაბადების თარიღი: ${patient.dob}</div>
+        `;
+        
+        renderHistoryTable(patient);
+        historyModal.style.display = "block";
+        document.body.style.overflow = "hidden";
+    }
+
+    function renderHistoryTable(patient) {
+        historyTableBody.innerHTML = "";
+        const history = patient.history || [];
+
+        if (history.length === 0) {
+            historyTableBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 20px;">ისტორია ცარიელია</td></tr>';
+            return;
+        }
+
+        // Sort by date desc
+        history.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+        history.forEach(item => {
+            const tr = document.createElement("tr");
+            tr.innerHTML = `
+                <td style="padding: 10px; border: 1px solid #ddd;">${item.date}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${item.serviceName}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${item.serviceCode}</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${item.price} GEL</td>
+                <td style="padding: 10px; border: 1px solid #ddd;">${getDoctorName(item.doctor)}</td>
+            `;
+            historyTableBody.appendChild(tr);
+        });
+    }
+
+    function openAddServiceModal() {
+        if (!currentHistoryPatient) return;
+        
+        // Populate services
+        const services = JSON.parse(localStorage.getItem("services")) || [];
+        selectService.innerHTML = '<option value="">-- აირჩიეთ სერვისი --</option>';
+        services.forEach(s => {
+            const option = document.createElement("option");
+            option.value = s.id;
+            option.textContent = `${s.name} (${s.price} GEL)`;
+            selectService.appendChild(option);
+        });
+
+        serviceDateInput.valueAsDate = new Date();
+        addServiceModal.style.display = "block";
+    }
+
+    function addServiceToPatient() {
+        const serviceId = selectService.value;
+        const date = serviceDateInput.value;
+        
+        if (!serviceId || !date) {
+            alert("გთხოვთ აირჩიოთ სერვისი და თარიღი");
+            return;
+        }
+
+        const services = JSON.parse(localStorage.getItem("services")) || [];
+        const service = services.find(s => s.id === serviceId);
+        
+        if (!service) return;
+
+        const newHistoryItem = {
+            id: Date.now().toString(),
+            serviceId: service.id,
+            serviceName: service.name,
+            serviceCode: service.code,
+            price: service.price,
+            doctor: service.performingDoctor, // Default to service's assigned doctor
+            date: date
+        };
+
+        // Update Patient
+        const patients = JSON.parse(localStorage.getItem("patients")) || [];
+        const index = patients.findIndex(p => p.personalId === currentHistoryPatient.personalId);
+        
+        if (index !== -1) {
+            if (!patients[index].history) patients[index].history = [];
+            patients[index].history.push(newHistoryItem);
+            
+            localStorage.setItem("patients", JSON.stringify(patients));
+            currentHistoryPatient = patients[index]; // Update local reference
+            
+            renderHistoryTable(currentHistoryPatient);
+            addServiceModal.style.display = "none";
+            alert("სერვისი დაემატა პაციენტის ისტორიას");
+        }
+    }
+
+    function printPatientHistory() {
+        if (!currentHistoryPatient) return;
+        
+        const history = currentHistoryPatient.history || [];
+        
+        let printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write('<html><head><title>პაციენტის ისტორია</title>');
+        printWindow.document.write('<style>body{font-family: sans-serif;} table{width: 100%; border-collapse: collapse; margin-top: 20px;} th, td{border: 1px solid black; padding: 8px; text-align: left;} .header{margin-bottom: 20px; border-bottom: 2px solid black; padding-bottom: 10px;} </style>');
+        printWindow.document.write('</head><body>');
+        
+        printWindow.document.write('<div class="header">');
+        printWindow.document.write('<h1>Clinic Healthy - პაციენტის ისტორია</h1>');
+        printWindow.document.write(`<p><strong>პაციენტი:</strong> ${currentHistoryPatient.firstName} ${currentHistoryPatient.lastName}</p>`);
+        printWindow.document.write(`<p><strong>პირადი ნომერი:</strong> ${currentHistoryPatient.personalId}</p>`);
+        printWindow.document.write(`<p><strong>დაბადების თარიღი:</strong> ${currentHistoryPatient.dob}</p>`);
+        printWindow.document.write('</div>');
+
+        if (history.length > 0) {
+            printWindow.document.write('<table><thead><tr><th>თარიღი</th><th>სერვისი</th><th>კოდი</th><th>თანხა</th><th>ექიმი</th></tr></thead><tbody>');
+            
+            history.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            history.forEach(item => {
+                printWindow.document.write(`<tr>
+                    <td>${item.date}</td>
+                    <td>${item.serviceName}</td>
+                    <td>${item.serviceCode}</td>
+                    <td>${item.price} GEL</td>
+                    <td>${getDoctorName(item.doctor)}</td>
+                </tr>`);
+            });
+            printWindow.document.write('</tbody></table>');
+        } else {
+            printWindow.document.write('<p>ისტორია ცარიელია.</p>');
+        }
+
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    function getDoctorName(id) {
+        if (!id) return "N/A";
+        const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+        const doc = doctors.find(d => d.id === id);
+        return doc ? `${doc.firstName} ${doc.lastName}` : id;
+    }
+
     function seedPatients() {
         if (!localStorage.getItem("patients")) {
             const samplePatients = [
                 {
-                    firstName: "Giorgi", lastName: "Beridze", personalId: "01020304050", dob: "1985-05-12", gender: "Male", citizenship: "Georgia",
-                    phone: "599112233", addressActual: "Tbilisi, Rustaveli Ave 1", addressLegal: "Tbilisi, Rustaveli Ave 1", email: "giorgi@example.com",
-                    bloodGroup: "A+", allergies: "Penicillin", status: "Active", familyDoctor: "Dr. Nino", diagnosis: "Hypertension",
-                    insuranceCompany: "GPI", policyNumber: "GPI-12345", insuranceType: "Corporate", createdAt: new Date().toISOString()
+                    firstName: "გიორგი", lastName: "ბერიძე", personalId: "01020304050", dob: "1985-05-12", gender: "Male", citizenship: "Georgia",
+                    phone: "599112233", addressActual: "თბილისი, რუსთაველის გამზ. 1", addressLegal: "თბილისი, რუსთაველის გამზ. 1", email: "giorgi@example.com",
+                    bloodGroup: "A+", allergies: "პენიცილინი", status: "Active", familyDoctor: "ექიმი ნინო", diagnosis: "ჰიპერტენზია",
+                    insuranceCompany: "ჯიპიაი", policyNumber: "GPI-12345", insuranceType: "Corporate", createdAt: new Date().toISOString(),
+                    history: []
                 },
                 {
-                    firstName: "Nino", lastName: "Kapanadze", personalId: "11020304051", dob: "1990-08-20", gender: "Female", citizenship: "Georgia",
-                    phone: "577445566", addressActual: "Batumi, Gorgiladze St 10", addressLegal: "Batumi, Gorgiladze St 10", email: "nino@example.com",
-                    bloodGroup: "O+", allergies: "None", status: "Active", familyDoctor: "Dr. David", diagnosis: "Migraine",
-                    insuranceCompany: "Imedi L", policyNumber: "IL-67890", insuranceType: "Individual", createdAt: new Date().toISOString()
+                    firstName: "ნინო", lastName: "კაპანაძე", personalId: "11020304051", dob: "1990-08-20", gender: "Female", citizenship: "Georgia",
+                    phone: "577445566", addressActual: "ბათუმი, გორგილაძის ქ. 10", addressLegal: "ბათუმი, გორგილაძის ქ. 10", email: "nino@example.com",
+                    bloodGroup: "O+", allergies: "არა", status: "Active", familyDoctor: "ექიმი დავითი", diagnosis: "შაკიკი",
+                    insuranceCompany: "იმედი L", policyNumber: "IL-67890", insuranceType: "Individual", createdAt: new Date().toISOString(),
+                    history: []
                 },
                 {
-                    firstName: "David", lastName: "Gelashvili", personalId: "21020304052", dob: "1978-02-14", gender: "Male", citizenship: "Georgia",
-                    phone: "555778899", addressActual: "Kutaisi, Tsereteli St 5", addressLegal: "Kutaisi, Tsereteli St 5", email: "david@example.com",
-                    bloodGroup: "B-", allergies: "Nuts", status: "Inactive", familyDoctor: "Dr. Ana", diagnosis: "Diabetes Type 2",
-                    insuranceCompany: "Ardi", policyNumber: "ARD-11223", insuranceType: "Universal", createdAt: new Date().toISOString()
+                    firstName: "დავით", lastName: "გელაშვილი", personalId: "21020304052", dob: "1978-02-14", gender: "Male", citizenship: "Georgia",
+                    phone: "555778899", addressActual: "ქუთაისი, წერეთლის ქ. 5", addressLegal: "ქუთაისი, წერეთლის ქ. 5", email: "david@example.com",
+                    bloodGroup: "B-", allergies: "თხილი", status: "Inactive", familyDoctor: "ექიმი ანა", diagnosis: "დიაბეტი ტიპი 2",
+                    insuranceCompany: "არდი", policyNumber: "ARD-11223", insuranceType: "Universal", createdAt: new Date().toISOString(),
+                    history: []
                 }
             ];
             localStorage.setItem("patients", JSON.stringify(samplePatients));

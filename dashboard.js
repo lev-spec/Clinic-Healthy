@@ -40,22 +40,22 @@ document.addEventListener("DOMContentLoaded", function () {
     if (!patients || patients.length === 0) {
         const samplePatients = [
             {
-                firstName: "Giorgi", lastName: "Beridze", personalId: "01020304050", dob: "1985-05-12", gender: "Male", citizenship: "Georgia",
-                phone: "599112233", addressActual: "Tbilisi, Rustaveli Ave 1", addressLegal: "Tbilisi, Rustaveli Ave 1", email: "giorgi@example.com",
-                bloodGroup: "A+", allergies: "Penicillin", status: "Active", familyDoctor: "Dr. Nino", diagnosis: "Hypertension",
-                insuranceCompany: "GPI", policyNumber: "GPI-12345", insuranceType: "Corporate", createdAt: new Date().toISOString()
+                firstName: "გიორგი", lastName: "ბერიძე", personalId: "01020304050", dob: "1985-05-12", gender: "Male", citizenship: "Georgia",
+                phone: "599112233", addressActual: "თბილისი, რუსთაველის გამზ. 1", addressLegal: "თბილისი, რუსთაველის გამზ. 1", email: "giorgi@example.com",
+                bloodGroup: "A+", allergies: "პენიცილინი", status: "Active", familyDoctor: "ექიმი ნინო", diagnosis: "ჰიპერტენზია",
+                insuranceCompany: "ჯიპიაი", policyNumber: "GPI-12345", insuranceType: "Corporate", createdAt: new Date().toISOString()
             },
             {
-                firstName: "Nino", lastName: "Kapanadze", personalId: "11020304051", dob: "1990-08-20", gender: "Female", citizenship: "Georgia",
-                phone: "577445566", addressActual: "Batumi, Gorgiladze St 10", addressLegal: "Batumi, Gorgiladze St 10", email: "nino@example.com",
-                bloodGroup: "O+", allergies: "None", status: "Active", familyDoctor: "Dr. David", diagnosis: "Migraine",
-                insuranceCompany: "Imedi L", policyNumber: "IL-67890", insuranceType: "Individual", createdAt: new Date().toISOString()
+                firstName: "ნინო", lastName: "კაპანაძე", personalId: "11020304051", dob: "1990-08-20", gender: "Female", citizenship: "Georgia",
+                phone: "577445566", addressActual: "ბათუმი, გორგილაძის ქ. 10", addressLegal: "ბათუმი, გორგილაძის ქ. 10", email: "nino@example.com",
+                bloodGroup: "O+", allergies: "არა", status: "Active", familyDoctor: "ექიმი დავითი", diagnosis: "შაკიკი",
+                insuranceCompany: "იმედი L", policyNumber: "IL-67890", insuranceType: "Individual", createdAt: new Date().toISOString()
             },
             {
-                firstName: "David", lastName: "Gelashvili", personalId: "21020304052", dob: "1978-02-14", gender: "Male", citizenship: "Georgia",
-                phone: "555778899", addressActual: "Kutaisi, Tsereteli St 5", addressLegal: "Kutaisi, Tsereteli St 5", email: "david@example.com",
-                bloodGroup: "B-", allergies: "Nuts", status: "Inactive", familyDoctor: "Dr. Ana", diagnosis: "Diabetes Type 2",
-                insuranceCompany: "Ardi", policyNumber: "ARD-11223", insuranceType: "Universal", createdAt: new Date().toISOString()
+                firstName: "დავით", lastName: "გელაშვილი", personalId: "21020304052", dob: "1978-02-14", gender: "Male", citizenship: "Georgia",
+                phone: "555778899", addressActual: "ქუთაისი, წერეთლის ქ. 5", addressLegal: "ქუთაისი, წერეთლის ქ. 5", email: "david@example.com",
+                bloodGroup: "B-", allergies: "თხილი", status: "Inactive", familyDoctor: "ექიმი ანა", diagnosis: "დიაბეტი ტიპი 2",
+                insuranceCompany: "არდი", policyNumber: "ARD-11223", insuranceType: "Universal", createdAt: new Date().toISOString()
             }
         ];
         localStorage.setItem("patients", JSON.stringify(samplePatients));
@@ -98,11 +98,19 @@ document.addEventListener("DOMContentLoaded", function () {
                 window.location.href = `patients.html?personalId=${p.personalId}`;
             };
 
-            // Determine status class
+            // Determine status class and translate
             let statusClass = "confirmed"; // Default/Active (greenish)
-            let statusText = p.status;
-            if (p.status === "Inactive") statusClass = "pending"; // Yellowish
-            if (p.status === "Deceased") statusClass = "cancelled"; // Red/Grey
+            let statusText = "აქტიური"; // Default translation
+            
+            if (p.status === "Active") statusText = "აქტიური";
+            if (p.status === "Inactive") {
+                statusClass = "pending"; 
+                statusText = "არააქტიური";
+            }
+            if (p.status === "Deceased") {
+                statusClass = "cancelled";
+                statusText = "გარდაცვლილი";
+            }
 
             tr.innerHTML = `
                 <td>${p.firstName} ${p.lastName}</td>
@@ -128,9 +136,9 @@ document.addEventListener("DOMContentLoaded", function () {
         new Chart(ctxPatients, {
             type: 'line',
             data: {
-                labels: ['Feb', 'Mar', 'Apr', 'May', 'Jun'], // Adjusted labels
+                labels: ['თებ', 'მარ', 'აპრ', 'მაი', 'ივნ'], // Adjusted labels
                 datasets: [{
-                    label: 'Total Patients',
+                    label: 'სულ პაციენტები',
                     data: patientData,
                     borderColor: '#4caf50',
                     backgroundColor: 'rgba(76, 175, 80, 0.2)',
@@ -154,7 +162,7 @@ document.addEventListener("DOMContentLoaded", function () {
         new Chart(ctxDepartments, {
             type: 'doughnut',
             data: {
-                labels: ['Cardiology', 'Neurology', 'Pediatrics', 'Dermatology'],
+                labels: ['კარდიოლოგია', 'ნევროლოგია', 'პედიატრია', 'დერმატოლოგია'],
                 datasets: [{
                     data: [35, 25, 25, 15],
                     backgroundColor: ['#f44336', '#2196f3', '#ff9800', '#9c27b0'],

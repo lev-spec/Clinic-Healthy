@@ -11,7 +11,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!username || !password || !phone) {
             result.style.color = "red";
-            result.innerText = "Username, password and phone are required!";
+            result.innerText = "მომხმარებლის სახელი, პაროლი და ტელეფონი სავალდებულოა!";
             return;
         }
 
@@ -23,10 +23,10 @@ document.addEventListener("DOMContentLoaded", function () {
         sessionStorage.setItem("demo_phone", phone);
 
         // 👇 ALERT-ში გამოჩენა
-        alert("DEMO SMS Code: " + smsCode);
+        alert("დემო SMS კოდი: " + smsCode);
 
         result.style.color = "blue";
-        result.innerText = "SMS code sent!";
+        result.innerText = "SMS კოდი გაიგზავნა!";
     });
 
     // კოდის შემოწმება
@@ -41,17 +41,17 @@ document.addEventListener("DOMContentLoaded", function () {
 
         if (!savedCode) {
             result.style.color = "red";
-            result.innerText = "Please send SMS code first!";
+            result.innerText = "ჯერ გააგზავნეთ SMS კოდი!";
             return;
         }
 
         if (phone === savedPhone && code === savedCode) {
             result.style.color = "green";
-            result.innerText = "Login successful ✅";
+            result.innerText = "ავტორიზაცია წარმატებულია ✅";
             window.location.href = "dashboard.html";
         } else {
             result.style.color = "red";
-            result.innerText = "Invalid verification code ❌";
+            result.innerText = "არასწორი ვერიფიკაციის კოდი ❌";
         }
     });
 });
