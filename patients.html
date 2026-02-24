@@ -11,7 +11,7 @@
 <header>
 <div class="left_main_container">
     <div class="top_left_container">
-        <img class="clinic_logo" id="clinic-logo" src="./../IMGS/clinic-logo.png" alt="საავადმყოფოს ლოგო">
+        <img class="clinic_logo" id="clinic-logo" src="imgs/clinic-logo.png" alt="საავადმყოფოს ლოგო">
     </div>
 
 <nav class="bottom_left_container">
@@ -235,9 +235,9 @@
         <h2>პაციენტის ისტორია</h2>
         <div id="history-patient-info" style="margin-bottom: 20px; font-weight: bold;"></div>
         
-        <div class="actions" style="margin: 20px 0; display: flex; justify-content: space-between;">
+        <div class="actions" style="margin: 20px 0; display: flex; justify-content: flex-start; gap: 10px;">
+             <button id="print-anketa-btn" class="btn-secondary" style="background-color: #009688; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">📄 ანკეტის ბეჭდვა</button>
              <button id="print-history-btn" class="btn-secondary" style="background-color: #607d8b; color: white; padding: 10px; border: none; border-radius: 5px; cursor: pointer;">🖨️ ისტორიის ბეჭდვა</button>
-             <button id="add-history-service-btn" class="btn-primary">+ სერვისის დამატება</button>
         </div>
 
         <table class="history-table" style="width: 100%; border-collapse: collapse;">
@@ -257,29 +257,7 @@
     </div>
 </div>
 
-<!-- Add Service to Patient Modal -->
-<div id="add-service-to-patient-modal" class="modal">
-    <div class="modal-content" style="width: 500px;">
-        <span class="close-add-service-modal" style="float: right; font-size: 28px; font-weight: bold; cursor: pointer;">&times;</span>
-        <h2>სერვისის დამატება</h2>
-        <form id="add-service-form">
-            <input type="hidden" id="history-patient-id" value="">
-            <div class="form-group">
-                <label for="select-service">აირჩიეთ სერვისი</label>
-                <select id="select-service" name="service" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
-                    <option value="">-- აირჩიეთ --</option>
-                </select>
-            </div>
-            <div class="form-group" style="margin-top: 15px;">
-                <label for="service-date">თარიღი</label>
-                <input type="date" id="service-date" required style="width: 100%; padding: 10px; margin-bottom: 10px;">
-            </div>
-            <div class="form-actions" style="margin-top: 20px;">
-                <button type="submit" class="submit-btn">დამატება</button>
-            </div>
-        </form>
-    </div>
-</div>
+
 
 <script src="dashboard.js"></script>
 <script src="patients.js"></script>

@@ -16,16 +16,8 @@ document.addEventListener("DOMContentLoaded", function () {
     const closeHistoryModalBtn = document.querySelector(".close-history-modal");
     const historyTableBody = document.getElementById("history-table-body");
     const printHistoryBtn = document.getElementById("print-history-btn");
-    const addHistoryServiceBtn = document.getElementById("add-history-service-btn");
+    const printAnketaBtn = document.getElementById("print-anketa-btn");
     const historyPatientInfo = document.getElementById("history-patient-info");
-
-    // Add Service to Patient Modal Elements
-    const addServiceModal = document.getElementById("add-service-to-patient-modal");
-    const closeAddServiceModalBtn = document.querySelector(".close-add-service-modal");
-    const addServiceForm = document.getElementById("add-service-form");
-    const selectService = document.getElementById("select-service");
-    const serviceDateInput = document.getElementById("service-date");
-    const historyPatientIdInput = document.getElementById("history-patient-id");
 
     const patientForm = document.getElementById("patient-form");
     const searchInput = document.getElementById("search-patient");
@@ -85,29 +77,15 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    if (addHistoryServiceBtn) {
-        addHistoryServiceBtn.addEventListener("click", () => {
-            openAddServiceModal();
-        });
-    }
-
     if (printHistoryBtn) {
         printHistoryBtn.addEventListener("click", () => {
             printPatientHistory();
         });
     }
 
-    // --- Add Service Modal Logic ---
-    if (closeAddServiceModalBtn) {
-        closeAddServiceModalBtn.addEventListener("click", () => {
-            addServiceModal.style.display = "none";
-        });
-    }
-
-    if (addServiceForm) {
-        addServiceForm.addEventListener("submit", (e) => {
-            e.preventDefault();
-            addServiceToPatient();
+    if (printAnketaBtn) {
+        printAnketaBtn.addEventListener("click", () => {
+            printPatientAnketa();
         });
     }
 
@@ -124,9 +102,6 @@ document.addEventListener("DOMContentLoaded", function () {
         if (e.target === historyModal) {
             historyModal.style.display = "none";
             document.body.style.overflow = "auto";
-        }
-        if (e.target === addServiceModal) {
-            addServiceModal.style.display = "none";
         }
     });
 
@@ -400,63 +375,7 @@ document.addEventListener("DOMContentLoaded", function () {
         });
     }
 
-    function openAddServiceModal() {
-        if (!currentHistoryPatient) return;
-        
-        // Populate services
-        const services = JSON.parse(localStorage.getItem("services")) || [];
-        selectService.innerHTML = '<option value="">-- აირჩიეთ სერვისი --</option>';
-        services.forEach(s => {
-            const option = document.createElement("option");
-            option.value = s.id;
-            option.textContent = `${s.name} (${s.price} GEL)`;
-            selectService.appendChild(option);
-        });
 
-        serviceDateInput.valueAsDate = new Date();
-        addServiceModal.style.display = "block";
-    }
-
-    function addServiceToPatient() {
-        const serviceId = selectService.value;
-        const date = serviceDateInput.value;
-        
-        if (!serviceId || !date) {
-            alert("გთხოვთ აირჩიოთ სერვისი და თარიღი");
-            return;
-        }
-
-        const services = JSON.parse(localStorage.getItem("services")) || [];
-        const service = services.find(s => s.id === serviceId);
-        
-        if (!service) return;
-
-        const newHistoryItem = {
-            id: Date.now().toString(),
-            serviceId: service.id,
-            serviceName: service.name,
-            serviceCode: service.code,
-            price: service.price,
-            doctor: service.performingDoctor, // Default to service's assigned doctor
-            date: date
-        };
-
-        // Update Patient
-        const patients = JSON.parse(localStorage.getItem("patients")) || [];
-        const index = patients.findIndex(p => p.personalId === currentHistoryPatient.personalId);
-        
-        if (index !== -1) {
-            if (!patients[index].history) patients[index].history = [];
-            patients[index].history.push(newHistoryItem);
-            
-            localStorage.setItem("patients", JSON.stringify(patients));
-            currentHistoryPatient = patients[index]; // Update local reference
-            
-            renderHistoryTable(currentHistoryPatient);
-            addServiceModal.style.display = "none";
-            alert("სერვისი დაემატა პაციენტის ისტორიას");
-        }
-    }
 
     function printPatientHistory() {
         if (!currentHistoryPatient) return;
@@ -493,6 +412,64 @@ document.addEventListener("DOMContentLoaded", function () {
         } else {
             printWindow.document.write('<p>ისტორია ცარიელია.</p>');
         }
+
+        printWindow.document.write('</body></html>');
+        printWindow.document.close();
+        printWindow.print();
+    }
+
+    function printPatientAnketa() {
+        if (!currentHistoryPatient) return;
+        const p = currentHistoryPatient;
+
+        let printWindow = window.open('', '', 'height=600,width=800');
+        printWindow.document.write('<html><head><title>პაციენტის ანკეტა</title>');
+        printWindow.document.write('<style>');
+        printWindow.document.write('body { font-family: "DejaVu Sans", sans-serif; padding: 40px; }');
+        printWindow.document.write('h1 { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 30px; }');
+        printWindow.document.write('.section { margin-bottom: 20px; }');
+        printWindow.document.write('.section h3 { background-color: #f2f2f2; padding: 5px 10px; border-bottom: 1px solid #ccc; }');
+        printWindow.document.write('.row { display: flex; margin-bottom: 8px; }');
+        printWindow.document.write('.label { font-weight: bold; width: 200px; }');
+        printWindow.document.write('.value { flex: 1; border-bottom: 1px dotted #ccc; }');
+        printWindow.document.write('</style>');
+        printWindow.document.write('</head><body>');
+
+        printWindow.document.write('<h1>Clinic Healthy - პაციენტის ანკეტა</h1>');
+
+        printWindow.document.write('<div class="section"><h3>1. პერსონალური ინფორმაცია</h3>');
+        printWindow.document.write(`<div class="row"><span class="label">სახელი, გვარი:</span><span class="value">${p.firstName} ${p.lastName}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">პირადი ნომერი:</span><span class="value">${p.personalId}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">დაბადების თარიღი:</span><span class="value">${p.dob}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">სქესი:</span><span class="value">${p.gender}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">მოქალაქეობა:</span><span class="value">${p.citizenship}</span></div>`);
+        printWindow.document.write('</div>');
+
+        printWindow.document.write('<div class="section"><h3>2. საკონტაქტო ინფორმაცია</h3>');
+        printWindow.document.write(`<div class="row"><span class="label">ტელეფონი:</span><span class="value">${p.phone}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">ელ-ფოსტა:</span><span class="value">${p.email || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">ფაქტიური მისამართი:</span><span class="value">${p.addressActual}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">იურიდიული მისამართი:</span><span class="value">${p.addressLegal}</span></div>`);
+        printWindow.document.write('</div>');
+
+        printWindow.document.write('<div class="section"><h3>3. სამედიცინო ინფორმაცია</h3>');
+        printWindow.document.write(`<div class="row"><span class="label">სისხლის ჯგუფი:</span><span class="value">${p.bloodGroup || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">ალერგიები:</span><span class="value">${p.allergies || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">დიაგნოზი / პრობლემა:</span><span class="value">${p.diagnosis || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">ოჯახის ექიმი:</span><span class="value">${p.familyDoctor || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">სტატუსი:</span><span class="value">${p.status}</span></div>`);
+        printWindow.document.write('</div>');
+
+        printWindow.document.write('<div class="section"><h3>4. დაზღვევა</h3>');
+        printWindow.document.write(`<div class="row"><span class="label">კომპანია:</span><span class="value">${p.insuranceCompany || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">პოლისის ნომერი:</span><span class="value">${p.policyNumber || "-"}</span></div>`);
+        printWindow.document.write(`<div class="row"><span class="label">ტიპი:</span><span class="value">${p.insuranceType || "-"}</span></div>`);
+        printWindow.document.write('</div>');
+
+        printWindow.document.write('<div style="margin-top: 50px; display: flex; justify-content: space-between;">');
+        printWindow.document.write('<div><strong>თარიღი:</strong> _______________</div>');
+        printWindow.document.write('<div><strong>პაციენტის ხელმოწერა:</strong> _______________</div>');
+        printWindow.document.write('</div>');
 
         printWindow.document.write('</body></html>');
         printWindow.document.close();

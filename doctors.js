@@ -6,20 +6,28 @@ document.addEventListener("DOMContentLoaded", function () {
     const doctorForm = document.getElementById("doctor-form");
     const searchInput = document.getElementById("search-doctor");
 
-    // Seed Data
+    // --- Role Check ---
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const isAdmin = currentUser && currentUser.role === 'admin';
+
+    // Seed Data if needed
     seedDoctors();
     renderDoctors();
 
     // --- Modal Logic ---
     if (addDoctorBtn) {
-        addDoctorBtn.addEventListener("click", () => {
-            document.querySelector("#doctor-modal h2").textContent = "ექიმის დამატება";
-            document.querySelector("#doctor-form .submit-btn").textContent = "შენახვა";
-            document.getElementById("doctor-edit-id").value = "";
-            doctorForm.reset();
-            doctorModal.style.display = "block";
-            document.body.style.overflow = "hidden";
-        });
+        if (!isAdmin) {
+            addDoctorBtn.style.display = 'none';
+        } else {
+            addDoctorBtn.addEventListener("click", () => {
+                document.querySelector("#doctor-modal h2").textContent = "ექიმის დამატება";
+                document.querySelector("#doctor-form .submit-btn").textContent = "შენახვა";
+                document.getElementById("doctor-edit-id").value = "";
+                doctorForm.reset();
+                doctorModal.style.display = "block";
+                document.body.style.overflow = "hidden";
+            });
+        }
     }
 
     if (closeDoctorModalBtn) {
@@ -37,7 +45,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // --- Form Submission ---
-    if (doctorForm) {
+    if (doctorForm && isAdmin) {
         doctorForm.addEventListener("submit", function (e) {
             e.preventDefault();
 
@@ -49,6 +57,8 @@ document.addEventListener("DOMContentLoaded", function () {
                 specialty: document.getElementById("docSpecialty").value,
                 phone: document.getElementById("docPhone").value,
                 email: document.getElementById("docEmail").value,
+                username: document.getElementById("docUsername").value,
+                password: document.getElementById("docPassword").value,
                 createdAt: editId ? undefined : new Date().toISOString()
             };
 
@@ -74,9 +84,15 @@ document.addEventListener("DOMContentLoaded", function () {
                     alert("ექიმი ამ ID-ით უკვე არსებობს.");
                     return;
                 }
+                // Check if username exists
+                if (doctors.some(d => d.username === newDoctor.username)) {
+                     alert("ექიმი ამ მომხმარებლის სახელით უკვე არსებობს.");
+                     return;
+                }
+
                 doctors.push(newDoctor);
                 localStorage.setItem("doctors", JSON.stringify(doctors));
-                alert("ექიმი წარმატებით დაემატა!");
+                alert("ექიმი წარმატებით დაემატა! ახლა მას შეუძლია ავტორიზაცია.");
             }
 
             doctorModal.style.display = "none";
@@ -94,6 +110,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Delete Global Function ---
     window.deleteDoctor = function(id) {
+        if (!isAdmin) return;
         if (confirm("დარწმუნებული ხართ, რომ გსურთ ამ ექიმის წაშლა?")) {
             let doctors = JSON.parse(localStorage.getItem("doctors")) || [];
             doctors = doctors.filter(d => d.id !== id);
@@ -104,6 +121,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Edit Global Helper ---
     window.openEditDoctorModal = function(id) {
+        if (!isAdmin) return;
         const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
         const doctor = doctors.find(d => d.id === id);
         
@@ -118,9 +136,45 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("docSpecialty").value = doctor.specialty;
             document.getElementById("docPhone").value = doctor.phone || "";
             document.getElementById("docEmail").value = doctor.email || "";
+            document.getElementById("docUsername").value = doctor.username || "";
+            document.getElementById("docPassword").value = doctor.password || "";
 
             doctorModal.style.display = "block";
             document.body.style.overflow = "hidden";
+        }
+    }
+
+    // --- Details Global Helper ---
+    window.showDoctorDetails = function(id) {
+        const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+        const doctor = doctors.find(d => d.id === id);
+        if(!doctor) return;
+        
+        let content = `
+            <div style="line-height: 1.6;">
+                <p><strong>სახელი გვარი:</strong> ${doctor.firstName} ${doctor.lastName}</p>
+                <p><strong>ID:</strong> ${doctor.id}</p>
+                <p><strong>სპეციალობა:</strong> ${doctor.specialty}</p>
+                <p><strong>ტელეფონი:</strong> ${doctor.phone || "N/A"}</p>
+                <p><strong>ელ-ფოსტა:</strong> ${doctor.email || "N/A"}</p>
+            </div>
+        `;
+        
+        if (isAdmin) {
+            content += `
+                <hr style="margin: 15px 0; border: 0; border-top: 1px solid #eee;">
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 4px;">
+                    <p><strong>მომხმარებელი:</strong> ${doctor.username || "N/A"}</p>
+                    <p><strong>პაროლი:</strong> ${doctor.password || "N/A"}</p>
+                </div>
+            `;
+        }
+        
+        // Use generic modal if available (defined in dashboard.js)
+        if (window.showCustomModal) {
+            window.showCustomModal("ექიმის დეტალები", content);
+        } else {
+            alert("დეტალები:\n" + content.replace(/<[^>]*>?/gm, ' '));
         }
     }
 
@@ -129,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function () {
         doctorsListContainer.innerHTML = "";
 
         if (doctors.length === 0) {
-            doctorsListContainer.innerHTML = '<div class="no-data">ექიმები არ მოიძებნა. დააჭირეთ "ექიმის დამატებას".</div>';
+            doctorsListContainer.innerHTML = '<div class="no-data">ექიმები არ მოიძებნა.</div>';
             return;
         }
 
@@ -149,6 +203,19 @@ document.addEventListener("DOMContentLoaded", function () {
             const card = document.createElement("div");
             card.className = "patient-card"; // Reusing patient card style
             
+            let buttonsHtml = '';
+            if (isAdmin) {
+                buttonsHtml = `
+                    <button class="details-btn" style="flex: 1; background-color: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">დეტალები</button>
+                    <button class="edit-btn" style="flex: 1; background-color: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">რედაქტირება</button>
+                    <button class="delete-btn" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">წაშლა</button>
+                `;
+            } else {
+                buttonsHtml = `
+                    <button class="details-btn" style="flex: 1; background-color: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">დეტალები</button>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="patient-header">
                     <div class="patient-avatar" style="background-color: #e3f2fd; color: #1976d2;">
@@ -165,17 +232,21 @@ document.addEventListener("DOMContentLoaded", function () {
                     <p><strong>ელ-ფოსტა:</strong> ${d.email || "N/A"}</p>
                 </div>
                 <div class="patient-footer" style="display: flex; gap: 10px;">
-                    <button class="edit-btn" style="flex: 1; background-color: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">რედაქტირება</button>
-                    <button class="delete-btn" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">წაშლა</button>
+                    ${buttonsHtml}
                 </div>
             `;
             
             // Attach Event Listeners
-            const editBtn = card.querySelector(".edit-btn");
-            editBtn.addEventListener("click", () => openEditDoctorModal(d.id));
+            const detailsBtn = card.querySelector(".details-btn");
+            if(detailsBtn) detailsBtn.addEventListener("click", () => showDoctorDetails(d.id));
 
-            const deleteBtn = card.querySelector(".delete-btn");
-            deleteBtn.addEventListener("click", () => deleteDoctor(d.id));
+            if (isAdmin) {
+                const editBtn = card.querySelector(".edit-btn");
+                if(editBtn) editBtn.addEventListener("click", () => openEditDoctorModal(d.id));
+
+                const deleteBtn = card.querySelector(".delete-btn");
+                if(deleteBtn) deleteBtn.addEventListener("click", () => deleteDoctor(d.id));
+            }
 
             doctorsListContainer.appendChild(card);
         });
@@ -185,12 +256,12 @@ document.addEventListener("DOMContentLoaded", function () {
         if (!localStorage.getItem("doctors")) {
             const sampleDoctors = [
                 {
-                    firstName: "ჯონ", lastName: "დოუ", id: "DOC001", specialty: "კარდიოლოგია",
-                    phone: "599000000", email: "john@clinic.ge", createdAt: new Date().toISOString()
+                    firstName: "ნინო", lastName: "ბერიძე", id: "DOC001", specialty: "კარდიოლოგია",
+                    phone: "599111222", email: "nino@clinic.ge", username: "nino_beridze", password: "password123", createdAt: new Date().toISOString()
                 },
                 {
-                    firstName: "ჯეინ", lastName: "სმიტი", id: "DOC002", specialty: "პედიატრია",
-                    phone: "577000000", email: "jane@clinic.ge", createdAt: new Date().toISOString()
+                    firstName: "გიორგი", lastName: "მაისურაძე", id: "DOC002", specialty: "პედიატრია",
+                    phone: "577333444", email: "giorgi@clinic.ge", username: "giorgi_maisuradze", password: "password123", createdAt: new Date().toISOString()
                 }
             ];
             localStorage.setItem("doctors", JSON.stringify(sampleDoctors));

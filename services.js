@@ -5,24 +5,27 @@ document.addEventListener("DOMContentLoaded", function () {
     const closeServiceModalBtn = document.querySelector(".close-modal");
     const serviceForm = document.getElementById("service-form");
     const searchInput = document.getElementById("search-service");
-    const performingDoctorSelect = document.getElementById("performingDoctor");
 
-    // Populate Doctors Dropdown
-    populateDoctors();
+    const currentUser = JSON.parse(localStorage.getItem("currentUser"));
+    const isAdmin = currentUser && currentUser.role === 'admin';
 
     // Load Services
     renderServices();
 
     // --- Modal Logic ---
     if (addServiceBtn) {
-        addServiceBtn.addEventListener("click", () => {
-            document.querySelector("#service-modal h2").textContent = "ახალი სერვისის დამატება";
-            document.querySelector("#service-form .submit-btn").textContent = "შენახვა";
-            document.getElementById("service-edit-id").value = "";
-            serviceForm.reset();
-            serviceModal.style.display = "block";
-            document.body.style.overflow = "hidden";
-        });
+        if (!isAdmin) {
+            addServiceBtn.style.display = 'none';
+        } else {
+            addServiceBtn.addEventListener("click", () => {
+                document.querySelector("#service-modal h2").textContent = "ახალი სერვისის დამატება";
+                document.querySelector("#service-form .submit-btn").textContent = "შენახვა";
+                document.getElementById("service-edit-id").value = "";
+                serviceForm.reset();
+                serviceModal.style.display = "block";
+                document.body.style.overflow = "hidden";
+            });
+        }
     }
 
     if (closeServiceModalBtn) {
@@ -40,7 +43,7 @@ document.addEventListener("DOMContentLoaded", function () {
     });
 
     // --- Form Submission ---
-    if (serviceForm) {
+    if (serviceForm && isAdmin) {
         serviceForm.addEventListener("submit", function (e) {
             e.preventDefault();
 
@@ -54,7 +57,6 @@ document.addEventListener("DOMContentLoaded", function () {
                 price: document.getElementById("price").value,
                 insuranceCompany: document.getElementById("insuranceCompany").value,
                 duration: document.getElementById("duration").value,
-                performingDoctor: document.getElementById("performingDoctor").value,
                 serviceType: document.getElementById("serviceType").value,
                 formIV100: document.getElementById("formIV100").checked,
                 createdAt: new Date().toISOString()
@@ -90,6 +92,7 @@ document.addEventListener("DOMContentLoaded", function () {
 
     // --- Global Helpers ---
     window.deleteService = function(id) {
+        if (!isAdmin) return;
         if (confirm("დარწმუნებული ხართ, რომ გსურთ ამ სერვისის წაშლა?")) {
             let services = JSON.parse(localStorage.getItem("services")) || [];
             services = services.filter(s => s.id !== id);
@@ -99,6 +102,7 @@ document.addEventListener("DOMContentLoaded", function () {
     }
 
     window.openEditServiceModal = function(id) {
+        if (!isAdmin) return;
         const services = JSON.parse(localStorage.getItem("services")) || [];
         const service = services.find(s => s.id === id);
         
@@ -114,12 +118,37 @@ document.addEventListener("DOMContentLoaded", function () {
             document.getElementById("price").value = service.price;
             document.getElementById("insuranceCompany").value = service.insuranceCompany;
             document.getElementById("duration").value = service.duration;
-            document.getElementById("performingDoctor").value = service.performingDoctor;
             document.getElementById("serviceType").value = service.serviceType;
             document.getElementById("formIV100").checked = service.formIV100;
 
             serviceModal.style.display = "block";
             document.body.style.overflow = "hidden";
+        }
+    }
+    
+    window.showServiceDetails = function(id) {
+        const services = JSON.parse(localStorage.getItem("services")) || [];
+        const service = services.find(s => s.id === id);
+        if(!service) return;
+        
+        let content = `
+            <div style="line-height: 1.6;">
+                <p><strong>დასახელება:</strong> ${service.name}</p>
+                <p><strong>კოდი:</strong> ${service.code}</p>
+                <p><strong>CPT კოდი:</strong> ${service.cptCode}</p>
+                <p><strong>კატეგორია:</strong> ${service.category}</p>
+                <p><strong>ფასი:</strong> ${service.price} GEL</p>
+                <p><strong>დაზღვევა:</strong> ${service.insuranceCompany}</p>
+                <p><strong>ხანგრძლივობა:</strong> ${service.duration} წთ</p>
+                <p><strong>ტიპი:</strong> ${service.serviceType}</p>
+                <p><strong>ფორმა IV-100:</strong> ${service.formIV100 ? 'კი' : 'არა'}</p>
+            </div>
+        `;
+        
+        if (window.showCustomModal) {
+            window.showCustomModal("სერვისის დეტალები", content);
+        } else {
+            alert("დეტალები:\n" + content.replace(/<[^>]*>?/gm, ' '));
         }
     }
 
@@ -128,7 +157,7 @@ document.addEventListener("DOMContentLoaded", function () {
         servicesListContainer.innerHTML = "";
 
         if (services.length === 0) {
-            servicesListContainer.innerHTML = '<div class="no-data">სერვისები არ მოიძებნა. დააჭირეთ "სერვისის დამატებას".</div>';
+            servicesListContainer.innerHTML = '<div class="no-data">სერვისები არ მოიძებნა.</div>';
             return;
         }
 
@@ -146,6 +175,19 @@ document.addEventListener("DOMContentLoaded", function () {
             const card = document.createElement("div");
             card.className = "patient-card"; // Reuse patient card style
             
+            let buttonsHtml = '';
+            if (isAdmin) {
+                buttonsHtml = `
+                    <button class="details-btn" style="flex: 1; background-color: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">დეტალები</button>
+                    <button class="edit-btn" style="flex: 1; background-color: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">რედაქტირება</button>
+                    <button class="delete-btn" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">წაშლა</button>
+                `;
+            } else {
+                buttonsHtml = `
+                    <button class="details-btn" style="flex: 1; background-color: #2196f3; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">დეტალები</button>
+                `;
+            }
+
             card.innerHTML = `
                 <div class="patient-header">
                     <div class="patient-avatar" style="background-color: #e0f2f1; color: #00695c;">
@@ -160,40 +202,25 @@ document.addEventListener("DOMContentLoaded", function () {
                 <div class="patient-body">
                     <p><strong>კატეგორია:</strong> ${s.category || "N/A"}</p>
                     <p><strong>ტიპი:</strong> ${s.serviceType}</p>
-                    <p><strong>ექიმი:</strong> ${getDoctorName(s.performingDoctor)}</p>
                 </div>
                 <div class="patient-footer" style="display: flex; gap: 10px;">
-                    <button class="edit-btn" style="flex: 1; background-color: #ff9800; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">რედაქტირება</button>
-                    <button class="delete-btn" style="flex: 1; background-color: #f44336; color: white; border: none; padding: 8px; border-radius: 4px; cursor: pointer;">წაშლა</button>
+                    ${buttonsHtml}
                 </div>
             `;
             
             // Attach Event Listeners
-            const editBtn = card.querySelector(".edit-btn");
-            editBtn.addEventListener("click", () => openEditServiceModal(s.id));
+            const detailsBtn = card.querySelector(".details-btn");
+            if(detailsBtn) detailsBtn.addEventListener("click", () => showServiceDetails(s.id));
 
-            const deleteBtn = card.querySelector(".delete-btn");
-            deleteBtn.addEventListener("click", () => deleteService(s.id));
+            if (isAdmin) {
+                const editBtn = card.querySelector(".edit-btn");
+                if(editBtn) editBtn.addEventListener("click", () => openEditServiceModal(s.id));
+
+                const deleteBtn = card.querySelector(".delete-btn");
+                if(deleteBtn) deleteBtn.addEventListener("click", () => deleteService(s.id));
+            }
 
             servicesListContainer.appendChild(card);
         });
-    }
-
-    function populateDoctors() {
-        if (!performingDoctorSelect) return;
-        const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
-        doctors.forEach(doc => {
-            const option = document.createElement("option");
-            option.value = doc.id;
-            option.textContent = `${doc.firstName} ${doc.lastName} (${doc.specialty})`;
-            performingDoctorSelect.appendChild(option);
-        });
-    }
-
-    function getDoctorName(id) {
-        if (!id) return "N/A";
-        const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
-        const doc = doctors.find(d => d.id === id);
-        return doc ? `${doc.firstName} ${doc.lastName}` : id;
     }
 });

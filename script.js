@@ -1,57 +1,55 @@
 document.addEventListener("DOMContentLoaded", function () {
-    const sendBtn = document.getElementById("send_code");
     const form = document.getElementById("login_form");
     const result = document.getElementById("result");
+    const usernameInput = document.getElementById("username");
+    const passwordInput = document.getElementById("password");
 
-    // SMS კოდის გაგზავნის იმიტაცია
-    sendBtn.addEventListener("click", function () {
-        const username = document.getElementById("username").value.trim();
-        const password = document.getElementById("password").value.trim();
-        const phone = document.getElementById("phone_number").value.trim();
+    if (form) {
+        form.addEventListener("submit", function (e) {
+            e.preventDefault();
 
-        if (!username || !password || !phone) {
+            const username = usernameInput.value.trim();
+            const password = passwordInput.value.trim();
+
+            if (!username || !password) {
+                result.style.color = "red";
+                result.innerText = "გთხოვთ შეავსოთ ყველა ველი";
+                return;
+            }
+
+            // Hardcoded Admin Credentials
+            if (username === "levan_shiukashvili" && password === "levan_shiukashvili01852013521") {
+                const adminUser = {
+                    role: "admin",
+                    firstName: "ლევან",
+                    lastName: "შიუკაშვილი",
+                    username: "levan_shiukashvili"
+                };
+                localStorage.setItem("currentUser", JSON.stringify(adminUser));
+                window.location.href = "dashboard.html";
+                return;
+            }
+
+            // Check Doctors from LocalStorage
+            const doctors = JSON.parse(localStorage.getItem("doctors")) || [];
+            // Find doctor with matching credentials
+            const foundDoctor = doctors.find(d => d.username === username && d.password === password);
+
+            if (foundDoctor) {
+                const user = {
+                    role: "doctor",
+                    firstName: foundDoctor.firstName,
+                    lastName: foundDoctor.lastName,
+                    username: foundDoctor.username,
+                    id: foundDoctor.id
+                };
+                localStorage.setItem("currentUser", JSON.stringify(user));
+                window.location.href = "dashboard.html";
+                return;
+            }
+
             result.style.color = "red";
-            result.innerText = "მომხმარებლის სახელი, პაროლი და ტელეფონი სავალდებულოა!";
-            return;
-        }
-
-        // შემთხვევითი 6-ნიშნა კოდი
-        const smsCode = Math.floor(100000 + Math.random() * 900000).toString();
-
-        // ვინახავთ დემო კოდს
-        sessionStorage.setItem("demo_sms_code", smsCode);
-        sessionStorage.setItem("demo_phone", phone);
-
-        // 👇 ALERT-ში გამოჩენა
-        alert("დემო SMS კოდი: " + smsCode);
-
-        result.style.color = "blue";
-        result.innerText = "SMS კოდი გაიგზავნა!";
-    });
-
-    // კოდის შემოწმება
-    form.addEventListener("submit", function (e) {
-        e.preventDefault();
-
-        const phone = document.getElementById("phone_number").value.trim();
-        const code = document.getElementById("code").value.trim();
-
-        const savedCode = sessionStorage.getItem("demo_sms_code");
-        const savedPhone = sessionStorage.getItem("demo_phone");
-
-        if (!savedCode) {
-            result.style.color = "red";
-            result.innerText = "ჯერ გააგზავნეთ SMS კოდი!";
-            return;
-        }
-
-        if (phone === savedPhone && code === savedCode) {
-            result.style.color = "green";
-            result.innerText = "ავტორიზაცია წარმატებულია ✅";
-            window.location.href = "dashboard.html";
-        } else {
-            result.style.color = "red";
-            result.innerText = "არასწორი ვერიფიკაციის კოდი ❌";
-        }
-    });
+            result.innerText = "არასწორი მომხმარებელი ან პაროლი";
+        });
+    }
 });

@@ -11,12 +11,20 @@ document.addEventListener("DOMContentLoaded", function () {
     const patientSearchResults = document.getElementById("patient-search-results");
     const selectedPatientDisplay = document.getElementById("selected-patient-display");
     const selectedPatientIdInput = document.getElementById("selected-patient-id");
+    const serviceSelect = document.getElementById("service-select");
     const doctorSelect = document.getElementById("doctor-select");
+    
+    // Price Editing Elements
+    const priceContainer = document.getElementById("price-container");
+    const originalPriceDisplay = document.getElementById("original-price-display");
+    const editPriceBtn = document.getElementById("edit-price-btn");
+    const customPriceInput = document.getElementById("custom-price-input");
 
     // Appointment Details Modal Elements
     const detailsModal = document.getElementById("appointment-details-modal");
     const closeDetailsModalBtn = document.querySelector(".close-details-modal");
     const detailPatient = document.getElementById("detail-patient");
+    const detailService = document.getElementById("detail-service");
     const detailDoctor = document.getElementById("detail-doctor");
     const detailTime = document.getElementById("detail-time");
     const detailReason = document.getElementById("detail-reason");
@@ -27,9 +35,11 @@ document.addEventListener("DOMContentLoaded", function () {
     let currentDetailId = null; // Store ID of appointment currently being viewed
     let currentDate = new Date();
     let selectedPatient = null;
+    let selectedServiceData = null; // Store full service object
 
     // Load Initial Data
     populateDoctorSelect();
+    populateServiceSelect();
     renderCalendar(currentDate);
 
     // --- Calendar Navigation ---
@@ -75,7 +85,57 @@ document.addEventListener("DOMContentLoaded", function () {
         }
     });
 
+    // --- Price Logic ---
+    if (serviceSelect) {
+        serviceSelect.addEventListener("change", (e) => {
+            const serviceId = e.target.value;
+            const services = JSON.parse(localStorage.getItem("services")) || [];
+            selectedServiceData = services.find(s => s.id === serviceId);
+
+            if (selectedServiceData) {
+                priceContainer.style.display = "block";
+                originalPriceDisplay.textContent = `${selectedServiceData.price} GEL`;
+                customPriceInput.style.display = "none";
+                customPriceInput.value = "";
+                editPriceBtn.style.display = "inline-block";
+            } else {
+                priceContainer.style.display = "none";
+            }
+        });
+    }
+
+    if (editPriceBtn) {
+        editPriceBtn.addEventListener("click", () => {
+             customPriceInput.style.display = "inline-block";
+             customPriceInput.value = selectedServiceData ? selectedServiceData.price : "";
+             customPriceInput.focus();
+             editPriceBtn.style.display = "none";
+        });
+    }
+
     // --- Populate Doctors ---
+    function populateServiceSelect() {
+        if (!serviceSelect) return;
+        const services = JSON.parse(localStorage.getItem("services")) || [];
+        
+        serviceSelect.innerHTML = '<option value="" disabled selected>აირჩიეთ სერვისი</option>';
+        
+        if (services.length === 0) {
+            const option = document.createElement("option");
+            option.disabled = true;
+            option.textContent = "სერვისები არ მოიძებნა";
+            serviceSelect.appendChild(option);
+            return;
+        }
+
+        services.forEach(svc => {
+            const option = document.createElement("option");
+            option.value = svc.id; 
+            option.textContent = `${svc.name}`;
+            serviceSelect.appendChild(option);
+        });
+    }
+
     function populateDoctorSelect() {
         let doctors = JSON.parse(localStorage.getItem("doctors"));
         
@@ -182,6 +242,10 @@ document.addEventListener("DOMContentLoaded", function () {
                 alert("გთხოვთ აირჩიოთ პაციენტი.");
                 return;
             }
+            if (!serviceSelect.value) {
+                alert("გთხოვთ აირჩიოთ სერვისი.");
+                return;
+            }
             if (!doctorSelect.value) {
                 alert("გთხოვთ აირჩიოთ ექიმი.");
                 return;
@@ -192,20 +256,54 @@ document.addEventListener("DOMContentLoaded", function () {
             const doctor = doctorSelect.value;
             const reason = document.getElementById("appointment-reason").value;
 
+            // Determine final price
+            let finalPrice = selectedServiceData ? selectedServiceData.price : 0;
+            if (customPriceInput.style.display !== "none" && customPriceInput.value) {
+                finalPrice = parseFloat(customPriceInput.value);
+            }
+
             const newAppointment = {
                 id: Date.now().toString(),
                 patientId: selectedPatient.personalId,
                 patientName: `${selectedPatient.firstName} ${selectedPatient.lastName}`,
+                serviceId: selectedServiceData.id,
+                serviceName: selectedServiceData.name,
+                serviceCode: selectedServiceData.code,
                 date: appointmentDate,
                 time: appointmentTime,
                 doctor: doctor,
                 reason: reason,
+                price: finalPrice, // Save the specific price for this visit
                 status: "Scheduled"
             };
 
+            // 1. Save Appointment
             let appointments = JSON.parse(localStorage.getItem("appointments")) || [];
             appointments.push(newAppointment);
             localStorage.setItem("appointments", JSON.stringify(appointments));
+
+            // 2. Handle Form IV-100 Logic (Add to Patient History)
+            if (selectedServiceData.formIV100) {
+                let patients = JSON.parse(localStorage.getItem("patients")) || [];
+                const patientIndex = patients.findIndex(p => p.personalId === selectedPatient.personalId);
+                
+                if (patientIndex !== -1) {
+                    if (!patients[patientIndex].history) {
+                        patients[patientIndex].history = [];
+                    }
+                    
+                    patients[patientIndex].history.push({
+                        date: appointmentDate,
+                        serviceName: selectedServiceData.name,
+                        serviceCode: selectedServiceData.code,
+                        price: finalPrice,
+                        doctor: doctor, // Using doctor name string here as stored in appointment
+                        notes: reason
+                    });
+                    
+                    localStorage.setItem("patients", JSON.stringify(patients));
+                }
+            }
 
             printAppointmentReceipt(newAppointment);
 
@@ -222,6 +320,13 @@ document.addEventListener("DOMContentLoaded", function () {
         selectedPatientIdInput.value = "";
         patientSearchResults.style.display = "none";
         doctorSelect.selectedIndex = 0;
+        if(serviceSelect) serviceSelect.selectedIndex = 0;
+        
+        // Reset Price UI
+        priceContainer.style.display = "none";
+        customPriceInput.style.display = "none";
+        editPriceBtn.style.display = "inline-block";
+        selectedServiceData = null;
     }
 
     // --- Update Status ---
@@ -337,6 +442,7 @@ document.addEventListener("DOMContentLoaded", function () {
     function openDetailsModal(appointment) {
         currentDetailId = appointment.id;
         detailPatient.textContent = appointment.patientName;
+        detailService.textContent = appointment.serviceName || "N/A";
         detailDoctor.textContent = appointment.doctor;
         detailTime.textContent = `${appointment.date} | ${appointment.time}`;
         detailReason.textContent = appointment.reason || "N/A";
@@ -361,17 +467,20 @@ document.addEventListener("DOMContentLoaded", function () {
         printWindow.document.write('<h2>ვიზიტის ქვითარი</h2>');
         printWindow.document.write(`<div class="info-item"><span class="label">კოდი:</span> ${appointment.id}</div>`);
         printWindow.document.write(`<div class="info-item"><span class="label">პაციენტი:</span> ${appointment.patientName}</div>`);
+        printWindow.document.write(`<div class="info-item"><span class="label">სერვისი:</span> ${appointment.serviceName || "N/A"}</div>`);
+        printWindow.document.write(`<div class="info-item"><span class="label">ფასი:</span> ${appointment.price} GEL</div>`);
         printWindow.document.write(`<div class="info-item"><span class="label">ექიმი:</span> ${appointment.doctor}</div>`);
         printWindow.document.write(`<div class="info-item"><span class="label">თარიღი/დრო:</span> ${appointment.date} / ${appointment.time}</div>`);
         printWindow.document.write(`<div class="info-item"><span class="label">მიზანი:</span> ${appointment.reason}</div>`);
         printWindow.document.write('<div style="text-align: center; margin-top: 20px; font-size: 12px; color: #666;">გმადლობთ რომ სარგებლობთ ჩვენი კლინიკით!</div>');
+        printWindow.document.write('<div class="no-print" style="text-align: center; margin-top: 20px;">');
+        printWindow.document.write('<button onclick="window.print()" style="padding: 10px 20px; background: #1a73e8; color: white; border: none; border-radius: 4px; cursor: pointer; margin-right: 10px;">ბეჭდვა</button>');
+        printWindow.document.write('<button onclick="window.close()" style="padding: 10px 20px; background: #d93025; color: white; border: none; border-radius: 4px; cursor: pointer;">დახურვა</button>');
+        printWindow.document.write('</div>');
         printWindow.document.write('</div>');
         printWindow.document.write('</body></html>');
         printWindow.document.close();
         printWindow.focus();
-        setTimeout(() => {
-            printWindow.print();
-            printWindow.close();
-        }, 500);
+        // Removed auto-close timeout
     }
 });

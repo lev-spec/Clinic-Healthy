@@ -11,7 +11,7 @@
 <header>
 <div class="left_main_container">
     <div class="top_left_container">
-        <img class="clinic_logo" id="clinic-logo" src="./../IMGS/clinic-logo.png" alt="საავადმყოფოს ლოგო">
+        <img class="clinic_logo" id="clinic-logo" src="imgs/clinic-logo.png" alt="საავადმყოფოს ლოგო">
     </div>
 
 <nav class="bottom_left_container">
@@ -53,7 +53,7 @@
     <h2>სისტემური პარამეტრები</h2>
     <form style="max-width: 500px; margin-top: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
         <label style="display: block; margin-bottom: 10px; font-weight: bold;">კლინიკის სახელი</label>
-        <input type="text" value="Clinic Healthy" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
+        <input type="text" id="clinic-name-input" value="Clinic Healthy" style="width: 100%; padding: 10px; border: 1px solid #ddd; border-radius: 4px; margin-bottom: 20px;">
         
         <label style="display: block; margin-bottom: 10px; font-weight: bold;">შეტყობინებები</label>
         <div style="display: flex; align-items: center; gap: 10px; margin-bottom: 20px;">
@@ -62,9 +62,26 @@
         
         <button type="button" style="background: #1a73e8; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer;">ცვლილებების შენახვა</button>
     </form>
+
+    <h2 style="margin-top: 40px;">მონაცემების მართვა</h2>
+    <div style="max-width: 500px; margin-top: 20px; padding: 20px; background: white; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <p style="margin-bottom: 20px; color: #666;">კლინიკის მონაცემების გადატანა ან შენახვა.</p>
+        
+        <div style="display: flex; gap: 10px;">
+            <button id="backup-btn" style="background: #4caf50; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <i class="fas fa-download"></i> ბექაფი (შენახვა)
+            </button>
+            
+            <button id="restore-btn" style="background: #ff9800; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+                <i class="fas fa-upload"></i> აღდგენა (ჩატვირთვა)
+            </button>
+            <input type="file" id="restore-input" style="display: none;" accept=".json">
+        </div>
+    </div>
 </div>
 
 <script src="dashboard.js"></script>
+<script src="settings.js"></script>
 
 </body>
 </html>

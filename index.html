@@ -12,25 +12,19 @@
 
         <form id="login_form">
             <fieldset>
-                <legend>შესვლა</legend>
-                <label for="username">მომხმარებელი:</label>
-                <input type="text" id="username" placeholder="შეიყვანეთ სახელი">
+                <legend>ავტორიზაცია</legend>
+                <div class="form-group">
+                    <label for="username">მომხმარებლის სახელი:</label>
+                    <input type="text" id="username" placeholder="შეიყვანეთ მომხმარებლის სახელი" required>
+                </div>
 
-                <label for="password">პაროლი:</label>
-                <input type="password" id="password" placeholder="შეიყვანეთ პაროლი">
-            </fieldset>
-
-            <fieldset>
-                <legend>ტელეფონის ვერიფიკაცია</legend>
-                <label for="phone_number">ტელეფონის ნომერი:</label>
-                <input type="tel" id="phone_number" placeholder="+995 5XXXXXXXX">
-
-                <label for="code">6-ნიშნა კოდი:</label>
-                <input type="text" id="code" maxlength="6" placeholder="------">
+                <div class="form-group">
+                    <label for="password">პაროლი:</label>
+                    <input type="password" id="password" placeholder="შეიყვანეთ პაროლი" required>
+                </div>
 
                 <div class="button_group">
-                    <button type="button" id="send_code">კოდის გაგზავნა</button>
-                    <button type="submit">შესვლა</button>
+                    <button type="submit" id="login_btn">შესვლა</button>
                 </div>
 
                 <p id="result"></p>
